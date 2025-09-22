@@ -4,11 +4,11 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import ai from "../assets/ai.gif";
 import user from "../assets/user.gif";
-import {BiMenuAltRight} from "react-icons/bi"
-
+import { BiLogOut, BiEditAlt } from "react-icons/bi";
 
 const Home = () => {
-  const { userData, ServerUrl, setUserData, getGeminiResponse } = useContext(userDataContext);
+  const { userData, ServerUrl, setUserData, getGeminiResponse } =
+    useContext(userDataContext);
   const navigate = useNavigate();
   const [listening, setListening] = useState(false);
   const [userText, setUserText] = useState("");
@@ -20,7 +20,11 @@ const Home = () => {
   // Logout
   const handleLogout = async () => {
     try {
-      await axios.post(`${ServerUrl}/api/auth/logout`, {}, { withCredentials: true });
+      await axios.post(
+        `${ServerUrl}/api/auth/logout`,
+        {},
+        { withCredentials: true }
+      );
       setUserData(null);
       navigate("/login");
     } catch (error) {
@@ -30,72 +34,77 @@ const Home = () => {
     }
   };
 
-  // Speak text
- // 👇 Replace your current speak() with this one
-const speak = (text) => {
-  const utterance = new SpeechSynthesisUtterance(text);
-  isSpeakingRef.current = true;
+  // Speak
+  const speak = (text) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    isSpeakingRef.current = true;
+    const lang = /[a-zA-Z]/.test(text) ? "en-US" : "hi-IN";
+    utterance.lang = lang;
 
-  // Detect language from text (if it contains English letters, use en-US)
-  const lang = /[a-zA-Z]/.test(text) ? "en-US" : "hi-IN";
-  utterance.lang = lang;
-
-  // Get available voices
-  const voices = synth.getVoices();
-
-  // Try to pick a female voice in the correct language
-  let selectedVoice =
-    voices.find((v) => v.lang === lang && /female|woman/i.test(v.name)) ||
-    voices.find((v) => v.lang.startsWith(lang.split("-")[0]) && /female|woman/i.test(v.name));
-
-  // If no female voice, fallback to any voice in that language
-  if (!selectedVoice) {
-    selectedVoice =
-      voices.find((v) => v.lang === lang) ||
-      voices.find((v) => v.lang.startsWith(lang.split("-")[0]));
-  }
-
-  if (selectedVoice) utterance.voice = selectedVoice;
-
-  utterance.onend = () => {
-    isSpeakingRef.current = false;
-    setAiText("");
-    if (recognitionRef.current && !listening) {
-      try {
-        recognitionRef.current.start();
-      } catch (err) {
-        if (err.name !== "InvalidStateError") console.error(err);
-      }
+    const voices = synth.getVoices();
+    let selectedVoice =
+      voices.find((v) => v.lang === lang && /female|woman/i.test(v.name)) ||
+      voices.find(
+        (v) =>
+          v.lang.startsWith(lang.split("-")[0]) &&
+          /female|woman/i.test(v.name)
+      );
+    if (!selectedVoice) {
+      selectedVoice =
+        voices.find((v) => v.lang === lang) ||
+        voices.find((v) => v.lang.startsWith(lang.split("-")[0]));
     }
+    if (selectedVoice) utterance.voice = selectedVoice;
+
+    utterance.onend = () => {
+      isSpeakingRef.current = false;
+      setAiText("");
+      if (recognitionRef.current && !listening) {
+        try {
+          recognitionRef.current.start();
+        } catch (err) {
+          if (err.name !== "InvalidStateError") console.error(err);
+        }
+      }
+    };
+
+    synth.speak(utterance);
   };
 
-  synth.speak(utterance);
-};
-
-
-  // Handle assistant commands
+  // Commands
   const handleCommand = (data) => {
     const { type, userInput, response } = data;
     speak(response);
-
-    if (type === "google-search") {
-      window.open(`https://www.google.com/search?q=${encodeURIComponent(userInput)}`, "_blank");
-    }
-    if (type === "calculator-open") window.open("https://www.google.com/search?q=calculator", "_blank");
-    if (type === "instagram-open") window.open("https://www.instagram.com/", "_blank");
-    if (type === "facebook-open") window.open("https://www.facebook.com/", "_blank");
-    if (type === "weather-show") window.open("https://www.google.com/search?q=weather", "_blank");
-    if (type === "youtube-search" || type === "youtube-play") {
-      window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(userInput)}`, "_blank");
-    }
+    if (type === "google-search")
+      window.open(
+        `https://www.google.com/search?q=${encodeURIComponent(userInput)}`,
+        "_blank"
+      );
+    if (type === "calculator-open")
+      window.open("https://www.google.com/search?q=calculator", "_blank");
+    if (type === "instagram-open")
+      window.open("https://www.instagram.com/", "_blank");
+    if (type === "facebook-open")
+      window.open("https://www.facebook.com/", "_blank");
+    if (type === "weather-show")
+      window.open("https://www.google.com/search?q=weather", "_blank");
+    if (type === "youtube-search" || type === "youtube-play")
+      window.open(
+        `https://www.youtube.com/results?search_query=${encodeURIComponent(
+          userInput
+        )}`,
+        "_blank"
+      );
   };
 
-  // Initialize voice recognition
+  // Voice recognition
   useEffect(() => {
     if (!userData) return;
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return console.warn("SpeechRecognition API not supported.");
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition)
+      return console.warn("SpeechRecognition API not supported.");
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
@@ -104,14 +113,19 @@ const speak = (text) => {
 
     recognition.onstart = () => setListening(true);
     recognition.onend = () => setListening(false);
-
-    recognition.onerror = (event) => console.error("❌ Recognition error:", event.error);
+    recognition.onerror = (event) =>
+      console.error("❌ Recognition error:", event.error);
 
     recognition.onresult = async (event) => {
-      const transcript = event.results[event.results.length - 1][0].transcript.trim();
-  
+      const transcript =
+        event.results[event.results.length - 1][0].transcript.trim();
 
-      if (userData?.assistantName && transcript.toLowerCase().includes(userData.assistantName.toLowerCase())) {
+      if (
+        userData?.assistantName &&
+        transcript
+          .toLowerCase()
+          .includes(userData.assistantName.toLowerCase())
+      ) {
         try {
           setUserText(transcript);
           recognition.stop();
@@ -119,11 +133,9 @@ const speak = (text) => {
           setListening(false);
 
           const response = await getGeminiResponse(transcript);
-          console.log("Gemini response:", response);
-
           if (response) handleCommand(response);
           setAiText(response.response);
-            setUserText("");
+          setUserText("");
         } catch (err) {
           console.error("❌ Error fetching Gemini response:", err);
         }
@@ -131,7 +143,6 @@ const speak = (text) => {
     };
 
     recognition.start();
-
     return () => {
       recognition.stop();
       setListening(false);
@@ -141,36 +152,62 @@ const speak = (text) => {
   if (!userData) return <div>Loading...</div>;
 
   return (
-    <div className="w-full h-[100vh] bg-gradient-to-t from-black to-[#030353] flex justify-center items-center flex-col gap-[15px]">
-      {/* Logout */}
-      <button
-        className="w-auto px-4 py-3  mt-4 rounded-lg bg-gradient-to-r absolute top-[20px] right-[20px] from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all duration-300 font-semibold text-white"
-        onClick={handleLogout}
-      >
-        Log Out
-      </button>
+    <div className="w-full h-screen overflow-hidden bg-gradient-to-t from-black to-[#030353] flex flex-col items-center justify-center gap-5 px-4 relative">
+      {/* Top Right Buttons */}
+      <div className="absolute top-4 right-4 flex flex-col sm:flex-row gap-3">
+        {/* Logout */}
+        <button
+          className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 transition-all duration-300 font-semibold text-white text-sm sm:text-base"
+          onClick={handleLogout}
+        >
+          <BiLogOut size={20} />
+          <span className="hidden sm:block">Log Out</span>
+        </button>
 
-      {/* Customize */}
-      <button
-        className="w-auto px-4 py-3 mt-4 rounded-lg   absolute top-[100px] right-[20px] bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all duration-300 font-semibold text-white"
-        onClick={() => navigate("/customize")}
-      >
-        Customize your Assistant
-      </button>
-
-      {/* Assistant Card */}
-      <div className="w-[300px] h-[400px] flex justify-center items-center overflow-hidden rounded-2xl shadow-lg">
-        <img src={userData.assistantImage} alt="Assistant" className="h-full object-cover rounded-2xl" />
+        {/* Customize */}
+        <button
+          className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all duration-300 font-semibold text-white text-sm sm:text-base"
+          onClick={() => navigate("/customize")}
+        >
+          <BiEditAlt size={20} />
+          <span className="hidden sm:block">Customize</span>
+        </button>
       </div>
 
-    <h1 className="text-white text-[18px] font-bold">I'm {userData.assistantName}</h1>
+      {/* Assistant Card */}
+      <div className="w-[70%] max-w-[320px] aspect-[3/4] flex justify-center items-center overflow-hidden rounded-2xl shadow-lg">
+        <img
+          src={userData.assistantImage}
+          alt="Assistant"
+          className="w-full h-full object-cover rounded-2xl"
+        />
+      </div>
 
+      {/* Assistant Name */}
+      <h1 className="text-white text-lg sm:text-xl font-bold text-center">
+        I'm {userData.assistantName}
+      </h1>
 
-{!aiText && <img src={user} alt="User speaking" className="w-[200px]" />}
-{aiText && <img src={ai} alt="AI responding" className="w-[200px]" />}
-<h1 className="text-white text-[18px] font-bold">{userText ? userText : aiText? aiText :null}</h1>
-
-      
+      {/* Talking Section */}
+      <div className="flex flex-col items-center gap-2">
+        {!aiText && (
+          <img
+            src={user}
+            alt="User speaking"
+            className="w-[100px] sm:w-[150px]"
+          />
+        )}
+        {aiText && (
+          <img
+            src={ai}
+            alt="AI responding"
+            className="w-[100px] sm:w-[150px]"
+          />
+        )}
+        <h1 className="text-white text-sm sm:text-lg font-bold text-center px-3 truncate max-w-[90vw]">
+          {userText ? userText : aiText ? aiText : null}
+        </h1>
+      </div>
     </div>
   );
 };
