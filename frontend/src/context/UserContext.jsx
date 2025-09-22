@@ -3,7 +3,7 @@ import axios from "axios";
 import React, { createContext, useState, useEffect } from "react";
 
 // ✅ Capitalize and keep consistent everywhere
-const ServerUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:8000";
+const ServerUrl = import.meta.env.VITE_SERVER_URL || "https://al-virtual-assistant.onrender.com";
 
 export const userDataContext = createContext();
 
