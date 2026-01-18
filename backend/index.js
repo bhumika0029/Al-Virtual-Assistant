@@ -12,24 +12,24 @@ dotenv.config();
 const app = express();
 
 // ===========================================
-// ✅ SMARTER CORS CONFIGURATION
+// ✅ 1. DYNAMIC CORS CONFIGURATION
 // ===========================================
+const allowedOrigins = [
+  "http://localhost:5173",                // 1. Local Development
+  process.env.APP_CORS_ALLOWEDORIGINS     // 2. Production (Vercel URL set in Render)
+];
+
 app.use(cors({
   origin: (origin, callback) => {
-    // 1. Allow requests with no origin (Postman, Mobile Apps)
+    // Allow requests with no origin (like Postman or mobile apps)
     if (!origin) return callback(null, true);
-
-    // 2. Allow Localhost (Development)
-    if (origin === "http://localhost:5173") return callback(null, true);
-
-    // 3. Allow ANY Vercel URL (This fixes the Preview URL error)
-    if (origin.endsWith(".vercel.app")) {
-      return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.error("❌ Blocked by CORS:", origin); // Debugging log
+      callback(new Error("Not allowed by CORS"));
     }
-
-    // 4. Block everything else
-    console.log("❌ Blocked by CORS:", origin);
-    return callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
 }));

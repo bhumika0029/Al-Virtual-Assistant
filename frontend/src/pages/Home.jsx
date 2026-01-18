@@ -215,7 +215,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Footer */}
+      Footer
       <div className="absolute bottom-6 text-white/20 text-[10px] uppercase tracking-widest">
         Powered by Gemini 1.5 Flash
       </div>
