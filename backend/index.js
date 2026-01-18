@@ -16,14 +16,13 @@ const app = express();
 // ===========================================
 app.use(cors({
   origin: (origin, callback) => {
-    // 1. Allow requests with no origin (Postman, Mobile Apps, Server-to-Server)
+    // 1. Allow requests with no origin (Postman, Mobile Apps)
     if (!origin) return callback(null, true);
 
     // 2. Allow Localhost (Development)
     if (origin === "http://localhost:5173") return callback(null, true);
 
-    // 3. Allow ANY Vercel URL (Production & Previews)
-    // This fixes the error for URLs like "https://app-git-main-user.vercel.app"
+    // 3. Allow ANY Vercel URL (This fixes the Preview URL error)
     if (origin.endsWith(".vercel.app")) {
       return callback(null, true);
     }
