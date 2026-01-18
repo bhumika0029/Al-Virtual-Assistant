@@ -11,19 +11,36 @@ import geminiResponse from "./gemini.js";
 dotenv.config();
 const app = express();
 
+// ===========================================
+// ✅ 1. DYNAMIC CORS CONFIGURATION
+// ===========================================
+const allowedOrigins = [
+  "http://localhost:5173",                // 1. Local Development
+  process.env.APP_CORS_ALLOWEDORIGINS     // 2. Production (Vercel URL set in Render)
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like Postman or mobile apps)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.error("❌ Blocked by CORS:", origin); // Debugging log
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+}));
+
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true,
-}));
 
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
-
-
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URL)
