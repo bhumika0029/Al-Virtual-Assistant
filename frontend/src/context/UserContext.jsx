@@ -1,17 +1,13 @@
 import axios from "axios";
 import React, { createContext, useState, useEffect } from "react";
 
-<<<<<<< HEAD
-// ✅ Create and Export the Context here (Do not import it)
-=======
-// ✅ Capitalize and keep consistent everywhere
-const ServerUrl = import.meta.env.VITE_SERVER_URL || "https://al-virtual-assistant.onrender.com";
-
->>>>>>> e9168e66ac265a400f4d938d6aad7871bf0d9cdb
 export const userDataContext = createContext();
 
 const UserContext = ({ children }) => {
-  const ServerUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:8000";
+  // ✅ Correct logic: Use VITE_SERVER_URL first. 
+  // If missing, fallback to your Live Render Backend (safer for production).
+  const ServerUrl = import.meta.env.VITE_SERVER_URL || "https://al-virtual-assistant.onrender.com";
+
   const [userData, setUserData] = useState(null);
 
   // State for Image Customization
