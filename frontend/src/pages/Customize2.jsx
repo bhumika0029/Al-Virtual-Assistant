@@ -1,35 +1,41 @@
 import React, { useContext, useState, useEffect } from "react";
-import { userDataContext } from "../context/userContext";
+import { userDataContext } from "../context/UserContext";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import {MdKeyboardBackspace} from "react-icons/md"
+import { MdKeyboardBackspace } from "react-icons/md";
 
 const Customize2 = () => {
-  const { userData, backendImage, selectedImage, ServerUrl, setUserData } =
-    useContext(userDataContext);
+  const { userData, backendImage, selectedImage, ServerUrl, setUserData } = useContext(userDataContext);
+  
   const [assistantName, setAssistantName] = useState(userData?.assistantName || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
   const navigate = useNavigate();
 
-  // Redirect to login if no user/token
+  // Redirect if not logged in
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) navigate("/SignIn");
+    if (!token) navigate("/login"); 
   }, [navigate]);
 
   const handleUpdateAssistant = async () => {
+    if (!assistantName.trim()) return setError("Name cannot be empty");
+
     setLoading(true);
     const token = localStorage.getItem("token");
-    if (!token) {
-      setError("You must be logged in to update your assistant");
-      return;
-    }
 
     const formData = new FormData();
     formData.append("assistantName", assistantName);
-    if (backendImage) formData.append("assistantImage", backendImage);
-    else if (selectedImage) formData.append("imageUrl", selectedImage);
+
+    // ✅ Logic: Check if it's a raw FILE (Upload) or a STRING (Preset)
+    if (backendImage) {
+      // User uploaded a custom file -> Send as file
+      formData.append("assistantImage", backendImage); 
+    } else if (selectedImage) {
+      // User picked a preset -> Send as text URL
+      formData.append("imageUrl", selectedImage); 
+    }
 
     try {
       const { data } = await axios.post(
@@ -37,50 +43,57 @@ const Customize2 = () => {
         formData,
         {
           headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${token}`, // ✅ send JWT properly
+            // ❌ DELETED: "Content-Type": "multipart/form-data" 
+            // ✅ Let the browser set the boundary automatically!
+            Authorization: `Bearer ${token}`,
           },
         }
       );
 
       setUserData(data.user);
-      console.log("✅ Assistant Updated:", data);
       setLoading(false);
-      navigate("/");
+      navigate("/"); // Redirect home on success
     } catch (err) {
-      console.error("❌ Error updating assistant:", err.response?.data || err.message);
+      console.error("❌ Update Error:", err);
       setLoading(false);
-      setError(err.response?.data?.message || err.message);
+      setError(err.response?.data?.message || "Failed to update assistant");
     }
   };
 
   return (
-    <div className="w-full h-[100vh] bg-gradient-to-t from-black to-[#030353] flex justify-center items-center flex-col p-4 relative" >
-      <MdKeyboardBackspace className="absolute top-[3px] left-[3px] text-white w-[25px] h-[25px] cursor-pointer" onClick={() => navigate("/customize")} />
+    <div className="w-full h-[100vh] bg-gradient-to-t from-black to-[#030353] flex justify-center items-center flex-col p-4 relative">
+      <MdKeyboardBackspace 
+        className="absolute top-6 left-6 text-white w-8 h-8 cursor-pointer hover:scale-110 transition-all" 
+        onClick={() => navigate("/customize")} 
+      />
+      
       <h1 className="text-white text-2xl font-bold mb-4">
-        Enter Your Assistant's Name
+        Name Your Assistant
       </h1>
 
       <input
         type="text"
-        placeholder="Enter your assistant's name"
-        className="p-3 rounded-lg max-w-md w-full bg-white/10 border border-gray-500 text-white placeholder-gray-300 focus:outline-none focus:border-blue-400"
+        placeholder="e.g. Jarvis, Friday, Alexa..."
+        className="p-3 rounded-lg max-w-md w-full bg-white/10 border border-gray-500 text-white placeholder-gray-300 focus:outline-none focus:border-blue-400 backdrop-blur-sm"
         required
-        onChange={(e) => setAssistantName(e.target.value)}
+        onChange={(e) => {
+            setAssistantName(e.target.value);
+            setError(""); 
+        }}
         value={assistantName}
       />
 
       {assistantName && (
         <button
-          className="mt-6 px-6 py-2 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:scale-105 transition-all duration-300 cursor-pointer"
+          className="mt-6 px-8 py-3 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-500 hover:scale-105 transition-all duration-300 disabled:opacity-50"
           onClick={handleUpdateAssistant}
           disabled={loading}
         >
-          {!loading ? "Create Your Assistant" : "loading..."}
+          {loading ? "Updating..." : "Create Your Assistant"}
         </button>
       )}
 
-      {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+      {error && <p className="text-red-400 text-sm mt-3 bg-red-900/20 px-3 py-1 rounded">{error}</p>}
     </div>
   );
 };

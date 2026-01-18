@@ -1,74 +1,62 @@
-// context/userContext.jsx
 import axios from "axios";
 import React, { createContext, useState, useEffect } from "react";
 
-// ✅ Capitalize and keep consistent everywhere
-const ServerUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:8000";
-
+// ✅ Create and Export the Context here (Do not import it)
 export const userDataContext = createContext();
 
 const UserContext = ({ children }) => {
+  const ServerUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:8000";
   const [userData, setUserData] = useState(null);
 
-  // images for assistant customization
+  // State for Image Customization
+  const [selectedImage, setSelectedImage] = useState(null);
   const [frontendImage, setFrontendImage] = useState(null);
   const [backendImage, setBackendImage] = useState(null);
-  const [selectedImage, setSelectedImage] = useState(null);
 
-  // ✅ Fetch current user
   const handleCurrentUser = async () => {
     try {
-      const result = await axios.get(`${ServerUrl}/api/auth/current`, {
-        withCredentials: true, // cookie/session handling
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const result = await axios.get(`${ServerUrl}/api/user/current`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       setUserData(result.data.user);
-      console.log("✅ Current User:", result.data.user);
     } catch (error) {
-      console.error(
-        "❌ Error fetching current user:",
-        error.response?.data || error.message
-      );
+      console.error("User fetch error:", error);
+      setUserData(null);
     }
   };
-const getGeminiResponse = async (command) => {
-  try {
-    const token = localStorage.getItem("token"); // get token
-    const result = await axios.post(
-      `${ServerUrl}/api/user/askToAssistant`,
-      { command },
-      {
-        headers: { Authorization: `Bearer ${token}` } 
-      }
-    );
-    return result.data;
-  } catch (error) {
-    console.error(
-      "❌ Error fetching Gemini response:",
-      error.response?.data || error.message
-    );
-  }
-};
 
+  const getGeminiResponse = async (command) => {
+    try {
+      const token = localStorage.getItem("token");
+      const result = await axios.post(
+        `${ServerUrl}/api/user/askToAssistant`, 
+        { command },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return result.data; 
+    } catch (error) {
+      console.error("❌ API Error:", error.response?.data || error.message);
+      return { response: "I'm having trouble connecting to the server.", type: "error" };
+    }
+  };
 
   useEffect(() => {
     handleCurrentUser();
   }, []);
 
-  const value = {
-    ServerUrl, // ✅ make sure frontend always uses this
-    userData,
-    setUserData,
-    backendImage,
-    setBackendImage,
-    frontendImage,
-    setFrontendImage,
-    selectedImage,
-    setSelectedImage,
-    getGeminiResponse,
-  };
-
   return (
-    <userDataContext.Provider value={value}>
+    <userDataContext.Provider value={{ 
+      ServerUrl, 
+      userData, 
+      setUserData, 
+      getGeminiResponse,
+      // Shared State for Customization
+      selectedImage, setSelectedImage,
+      frontendImage, setFrontendImage,
+      backendImage, setBackendImage
+    }}>
       {children}
     </userDataContext.Provider>
   );

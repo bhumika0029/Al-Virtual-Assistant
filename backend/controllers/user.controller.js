@@ -1,10 +1,9 @@
 import User from "../models/user.model.js";
 import uploadOnCloudinary from "../config/cloudinary.js";
-import moment from "moment";
-import geminiResponse from "../gemini.js"; // ✅ You forgot to import this
+import geminiResponse from "../gemini.js";
 
 // ==============================
-// Get current user
+// 1. Get current user
 // ==============================
 export const getCurrentUser = async (req, res) => {
   try {
@@ -19,28 +18,36 @@ export const getCurrentUser = async (req, res) => {
 };
 
 // ==============================
-// Update assistant
+// 2. Update assistant (Optimized)
 // ==============================
 export const updateAssistant = async (req, res) => {
   try {
     const { assistantName, imageUrl } = req.body;
-    let assistantImage;
+    
+    // ✅ Create a dynamic object. Always update the name.
+    const updateData = { assistantName };
 
-    if (req.file) {
-      assistantImage = await uploadOnCloudinary(req.file.path);
-    } else {
-      assistantImage = imageUrl;
+    // Case 1: User picked a Preset Image (String URL)
+    if (imageUrl) {
+      updateData.assistantImage = imageUrl;
     }
 
+    // Case 2: User Uploaded a File (Overwrites preset if both exist)
+    if (req.file) {
+      const uploadResult = await uploadOnCloudinary(req.file.path);
+      if (uploadResult) {
+        updateData.assistantImage = uploadResult.secure_url;
+      }
+    }
+
+    // Update only the fields that exist in updateData
     const user = await User.findByIdAndUpdate(
       req.userId,
-      { assistantName, assistantImage },
+      updateData,
       { new: true }
     ).select("-password");
 
-    return res
-      .status(200)
-      .json({ message: "Assistant updated successfully", user });
+    return res.status(200).json({ message: "Assistant updated successfully", user });
   } catch (error) {
     console.error("❌ Update assistant error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -48,76 +55,33 @@ export const updateAssistant = async (req, res) => {
 };
 
 // ==============================
-// Ask to Assistant
+// 3. Ask to Assistant (With History Limit)
 // ==============================
 export const askToAssistant = async (req, res) => {
   try {
     const { command } = req.body;
+    const user = await User.findById(req.userId);
 
-    const user = await User.findById(req.userId).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Save to history
+    const result = await geminiResponse(command, user.assistantName, user.name);
+
+    // Safety check
+    if (!user.history) user.history = [];
+    
+    // Add new command
     user.history.push({ command, date: new Date() });
+
+    // ✅ OPTIMIZATION: Keep only the last 50 items to prevent DB bloat
+    if (user.history.length > 50) {
+      user.history = user.history.slice(-50);
+    }
+
     await user.save();
 
-    const userName = user.name;
-    const assistantName = user.assistantName;
-
-    // Call your assistant
-    const gemResult = await geminiResponse(command, assistantName, userName);
-
-    // Use gemResult directly (no need to parse JSON string)
-    const type = gemResult.type || "general";
-
-    switch (type) {
-      case "get-date":
-        return res.json({
-          type,
-          userInput: gemResult.userInput,
-          response: `Current date is ${moment().format("YYYY-MM-DD")}`,
-        });
-
-      case "get-time":
-        return res.json({
-          type,
-          userInput: gemResult.userInput,
-          response: `Current time is ${moment().format("HH:mm:ss")}`,
-        });
-
-      case "get-day":
-        return res.json({
-          type,
-          userInput: gemResult.userInput,
-          response: `Today is ${moment().format("dddd")}`,
-        });
-
-      case "get-month":
-        return res.json({
-          type,
-          userInput: gemResult.userInput,
-          response: `Current month is ${moment().format("MMMM")}`,
-        });
-
-      case "google-search":
-      case "youtube-search":
-      case "youtube-play":
-      case "calculator-open":
-      case "instagram-open":
-      case "facebook-open":
-      case "weather-show":
-        return res.json(gemResult);
-
-      default:
-        return res.json({
-          type,
-          userInput: gemResult.userInput,
-          response: gemResult.response,
-        });
-    }
+    res.status(200).json(result);
   } catch (error) {
-    console.error("❌ Ask to assistant error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("❌ Controller Error:", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
