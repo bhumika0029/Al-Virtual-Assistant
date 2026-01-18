@@ -1,45 +1,26 @@
-# ----------------------
-# GLOBAL
-# ----------------------
-# Dependency directories
+# dependencies
 node_modules/
-*/node_modules/
 
-# OS junk files
-.DS_Store
-Thumbs.db
+# production
+dist/
+build/
 
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-logs/
-*.log
-
-# ----------------------
-# SECURITY (Critical)
-# ----------------------
-# Ignore ALL .env files in any folder
+# env files
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-backend/.env
-frontend/.env
 
-# ----------------------
-# FRONTEND (Vite/React)
-# ----------------------
-# Build outputs
-dist/
-build/
-frontend/dist/
-frontend/build/
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# ----------------------
-# BACKEND (Node/Express)
-# ----------------------
-# Uploaded files (if you save them locally before Cloudinary)
-uploads/
-backend/uploads/
+# OS files
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/
+.idea/
